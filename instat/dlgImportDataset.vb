@@ -58,7 +58,7 @@ Public Class dlgImportDataset
         If strFileToOpenOn <> "" Then
             'if path is not a file or folder then it no longer exists
             If Not File.Exists(strFileToOpenOn) AndAlso Not Directory.Exists(strFileToOpenOn) Then
-                MsgBox("File or folder no longer exists: " & strFileToOpenOn)
+                MsgBoxTranslate("File or folder no longer exists: " & strFileToOpenOn)
                 strFileToOpenOn = "" 'reset
                 strFileExtension = "" 'reset
             End If
@@ -75,7 +75,7 @@ Public Class dlgImportDataset
                 SetDialogStateFromFile("")
             Else
                 If Not File.Exists(ucrInputFilePath.GetText()) AndAlso Not Directory.Exists(ucrInputFilePath.GetText()) Then
-                    MsgBox("File or folder no longer exists: " & strFilePathSystem, MsgBoxStyle.Information, "File/Folder No Longer Exists")
+                    MsgBoxTranslate("File or folder no longer exists: " & strFilePathSystem, MsgBoxStyle.Information, "File/Folder No Longer Exists")
                     SetDialogStateFromFile("")
                 Else
                     'get file or folder path from the control and use previous extension incase it was a folder
@@ -486,7 +486,7 @@ Public Class dlgImportDataset
                 ucrChkMultipleFiles.Checked = False
                 ucrSaveFile.Reset()
                 If NumberOfFileTypes(dlgOpen.FileNames) > 1 Then
-                    MsgBox("All files must be of the same type", MsgBoxStyle.Information, "Multiple file types")
+                    MsgBoxTranslate("All files must be of the same type", MsgBoxStyle.Information, "Multiple file types")
                     SetDialogStateFromFile("")
                 Else
                     dctSelectedExcelSheets.Clear()
@@ -888,6 +888,11 @@ Public Class dlgImportDataset
         Catch ex As Exception
         End Try
 
+        If clsTempImport.ContainsParameter("n_max") Then
+            clsTempImport.RemoveParameterByName("n_max")
+        End If
+        clsPipeOperator.AddParameter("y", clsRFunctionParameter:=clsTempImport, iPosition:=0)
+
     End Sub
 
     Private Sub cmdBrowse_Click(sender As Object, e As EventArgs) Handles cmdBrowse.Click
@@ -1273,6 +1278,10 @@ Public Class dlgImportDataset
         Return {".json"}.Contains(strFileExtension)
     End Function
 
+    Private Function IsSavFileFormat() As Boolean
+        Return {".sav"}.Contains(strFileExtension)
+    End Function
+
     Private Sub RemoveMissingValues()
         Dim clsPreviousBaseFunction As RFunction = ucrBase.clsRsyntax.clsBaseFunction
         If strFileExtension = ".rds" _
@@ -1296,6 +1305,8 @@ Public Class dlgImportDataset
                     strRowMaxParamName = "nrows"
                 ElseIf IsExcelFileFormat() Then
                     strRowMaxParamName = "n_max"
+                ElseIf IsSavFileFormat() Then
+                    strRowMaxParamName = "n_max"
                 End If
 
                 'determine the correct maximum number of lines to preview 
@@ -1306,7 +1317,9 @@ Public Class dlgImportDataset
                     clsTempFunction.AddParameter(strRowMaxParamName, ucrNudPreviewLines.Value)
                 End If
 
-
+                If Not (IsTextFileFormat() OrElse IsCSVFileFormat() OrElse IsExcelFileFormat() OrElse IsJSONFileFormat()) Then
+                    clsTempFunction.RemoveParameterByName(strRowMaxParamName)
+                End If
 
                 clsTempFunction.RemoveAssignTo()
                 clsTempFunction.bExcludeAssignedFunctionOutput = False
